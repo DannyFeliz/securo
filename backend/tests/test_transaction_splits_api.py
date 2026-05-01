@@ -303,7 +303,7 @@ async def test_balances_reflect_splits(client, auth_headers, test_user):
     resp = await client.get(f"/api/groups/{group['id']}/balances", headers=auth_headers)
     assert resp.status_code == 200
     body = resp.json()
-    by_member = {l["member_id"]: float(l["amount"]) for l in body["lines"]}
+    by_member = {ln["member_id"]: float(ln["amount"]) for ln in body["lines"]}
     # 60 / 3 = 20 each non-self share
     assert by_member.get(a["id"]) == 20.0
     assert by_member.get(b["id"]) == 20.0

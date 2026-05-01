@@ -13,7 +13,6 @@ from app.models.transaction import Transaction
 from app.models.user import User
 from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetVsActual
 from app.services._query_filters import (
-    counts_as_pnl,
     counts_as_user_pnl,
     owner_split_offset_by_category,
 )

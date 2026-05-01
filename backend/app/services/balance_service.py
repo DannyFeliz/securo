@@ -21,7 +21,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.group import Group, GroupMember
+from app.models.group import GroupMember
 from app.models.group_settlement import GroupSettlement
 from app.models.transaction import Transaction
 from app.models.transaction_split import TransactionSplit

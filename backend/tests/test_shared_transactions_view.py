@@ -7,7 +7,6 @@ in the linked member's ledger' design:
   - Owner doesn't see duplicates (they own the parent).
 """
 
-import bcrypt
 import pytest
 from httpx import AsyncClient
 

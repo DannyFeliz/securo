@@ -17,7 +17,6 @@ from app.models.group import Group, GroupMember
 from app.models.transaction import Transaction
 from app.models.transaction_split import TransactionSplit
 from app.schemas.transaction_split import (
-    TransactionSplitInput,
     TransactionSplitsInput,
 )
 

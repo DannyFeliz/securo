@@ -86,7 +86,7 @@ async def test_balances_each_friend_owes_their_share(session: AsyncSession, test
 
     balances = await balance_service.compute_balances(session, group.id, test_user.id)
     assert balances is not None
-    by_member = {l["member_id"]: l["amount"] for l in balances["lines"]}
+    by_member = {ln["member_id"]: ln["amount"] for ln in balances["lines"]}
     # Each friend owes 30.00, self balance line excluded.
     for f in friends:
         assert by_member[f.id] == Decimal("30.00")
@@ -132,7 +132,7 @@ async def test_settlement_reduces_balance(session: AsyncSession, test_user):
     await session.commit()
 
     balances = await balance_service.compute_balances(session, group.id, test_user.id)
-    by_member = {l["member_id"]: l["amount"] for l in balances["lines"]}
+    by_member = {ln["member_id"]: ln["amount"] for ln in balances["lines"]}
     assert by_member[friend.id] == Decimal("15.00")
 
 
@@ -158,7 +158,7 @@ async def test_self_loan_increases_balance_owed(session: AsyncSession, test_user
     await session.commit()
 
     balances = await balance_service.compute_balances(session, group.id, test_user.id)
-    by_member = {l["member_id"]: l["amount"] for l in balances["lines"]}
+    by_member = {ln["member_id"]: ln["amount"] for ln in balances["lines"]}
     assert by_member[friend.id] == Decimal("50.00")
 
 
@@ -187,7 +187,7 @@ async def test_balances_segregated_by_currency(session: AsyncSession, test_user)
     await session.commit()
 
     balances = await balance_service.compute_balances(session, group.id, test_user.id)
-    by_currency = {l["currency"]: l["amount"] for l in balances["lines"] if l["member_id"] == friend.id}
+    by_currency = {ln["currency"]: ln["amount"] for ln in balances["lines"] if ln["member_id"] == friend.id}
     assert by_currency["USD"] == Decimal("30.00")
     assert by_currency["EUR"] == Decimal("20.00")
 
@@ -224,6 +224,6 @@ async def test_no_self_member_means_only_split_totals(
     await session.commit()
 
     balances = await balance_service.compute_balances(session, group.id, test_user.id)
-    by_member = {l["member_id"]: l["amount"] for l in balances["lines"]}
+    by_member = {ln["member_id"]: ln["amount"] for ln in balances["lines"]}
     assert by_member[a.id] == Decimal("10.00")
     assert by_member[b.id] == Decimal("10.00")

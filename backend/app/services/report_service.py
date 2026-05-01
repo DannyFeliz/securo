@@ -17,7 +17,6 @@ from app.services._query_filters import (
     counts_as_pnl,
     counts_as_user_pnl,
     owner_split_offset_by_category,
-    owner_split_offset_pnl,
 )
 from app.services.admin_service import get_credit_card_accounting_mode
 from app.services.account_service import get_account_name

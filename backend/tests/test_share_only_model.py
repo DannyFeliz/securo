@@ -23,7 +23,6 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.account import Account
-from app.models.category import Category
 from app.models.fx_rate import FxRate
 from app.models.transaction import Transaction
 from app.schemas.group import GroupCreate, GroupMemberCreate
@@ -37,7 +36,6 @@ from app.services import (
     budget_service,
     dashboard_service,
     group_service,
-    report_service,
     settlement_service,
     split_service,
 )

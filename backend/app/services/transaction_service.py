@@ -12,7 +12,6 @@ from app.models.transaction_attachment import TransactionAttachment
 from app.models.account import Account
 from app.models.bank_connection import BankConnection
 from app.models.payee import Payee
-from app.models.transaction_split import TransactionSplit
 from app.schemas.transaction import TransactionCreate, TransactionUpdate, TransferCreate
 from app.services import split_service
 from app.services.credit_card_service import apply_effective_date
