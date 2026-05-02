@@ -27,7 +27,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { CheckCircle2, CalendarIcon, Paperclip, Target, ArrowUpDown } from 'lucide-react'
+import { CheckCircle2, CalendarIcon, Paperclip, Target, ArrowUpDown, HelpCircle } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ICON_MAP } from '@/lib/category-icons'
 import { PageHeader } from '@/components/page-header'
@@ -435,7 +435,12 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-6">
               {/* Balance */}
               <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground mb-0.5">{t('dashboard.totalBalance')}</p>
+                <p className="text-xs font-medium text-muted-foreground mb-0.5 flex items-center gap-1">
+                  {t('dashboard.totalBalance')}
+                  <span title={t('dashboard.totalBalanceTooltip')} className="inline-flex cursor-help">
+                    <HelpCircle className="h-3 w-3 text-muted-foreground/60" />
+                  </span>
+                </p>
                 {summaryLoading ? (
                   <Skeleton className="h-7 w-24" />
                 ) : (
@@ -445,7 +450,8 @@ export default function DashboardPage() {
                     </p>
                     {/* Per-currency breakdown when multiple currencies */}
                     {summary?.total_balance && Object.keys(summary.total_balance).length > 1 && (
-                      <div className="flex flex-wrap gap-x-2 mt-0.5">
+                      <div className="flex flex-wrap items-baseline gap-x-1.5 mt-0.5">
+                        <span className="text-[10px] text-muted-foreground/70">{t('dashboard.byCurrency')}</span>
                         {Object.entries(summary.total_balance).map(([cur, val]) => (
                           <span key={cur} className="text-[10px] text-muted-foreground tabular-nums">
                             {mask(formatCurrency(val, cur, locale))}

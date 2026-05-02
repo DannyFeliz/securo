@@ -105,6 +105,8 @@
     "greetingAfternoon": "Boa tarde",
     "greetingEvening": "Boa noite",
     "totalBalance": "Saldo Total",
+    "byCurrency": "Por moeda:",
+    "totalBalanceTooltip": "O valor principal soma todas as contas convertidas para sua moeda preferida. A linha \"Por moeda\" mostra os totais separados por moeda original, sem conversão — por isso a soma dos componentes na sua moeda preferida pode não bater com o total (o restante vem da conversão das outras moedas). \"Líquido\" ajusta o total pelo que você tem a receber ou pagar em divisões de grupo.",
     "pendingSharesOwe": "Líquido {{net}} após dívidas de grupo ({{owed}} pendente)",
     "pendingSharesOwed": "Líquido {{net}} incluindo {{owed}} a receber",
     "pendingSharesTooltip": "Reflete o que você deve ou vai receber em grupos, antes de qualquer acerto.",

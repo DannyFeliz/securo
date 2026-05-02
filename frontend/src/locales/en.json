@@ -105,6 +105,8 @@
     "greetingAfternoon": "Good afternoon",
     "greetingEvening": "Good evening",
     "totalBalance": "Total Balance",
+    "byCurrency": "By currency:",
+    "totalBalanceTooltip": "The main figure sums all accounts converted to your preferred currency. The \"By currency\" line shows totals grouped by each account's native currency, unconverted — so the component in your preferred currency may not match the total (the rest comes from converting the other currencies). \"Net\" adjusts the total for what you owe or are owed in group splits.",
     "pendingSharesOwe": "Net {{net}} after group debts ({{owed}} pending)",
     "pendingSharesOwed": "Net {{net}} including {{owed}} owed to you",
     "pendingSharesTooltip": "Reflects what you owe / are owed across your groups, before any settlement.",
