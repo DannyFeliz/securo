@@ -1561,3 +1561,52 @@ class TestEffectiveBillDateFiltersList:
             accounting_mode="cash",
         )
         assert any(t.id == tx.id for t in apr_txs)
+
+    @pytest.mark.asyncio
+    async def test_override_on_pending_sync_tx_shows_in_target_bill(
+        self, session, test_user, cc_account
+    ):
+        """A pending sync tx with a manual `effective_bill_date` whose value
+        does NOT exactly match any bill's due_date (so `bill_id` stays null)
+        must still appear in the bill view whose cycle window contains the
+        override. The sync-pending exclusion clause exists to keep auto-
+        classified pending charges out of the wrong bill — but a manual
+        override is the user's explicit correction and beats that caution
+        (issue #162: txs disappearing after setting effective_bill_date)."""
+        from app.services.transaction_service import get_transactions
+        from app.models.credit_card_bill import CreditCardBill
+        from datetime import datetime, timezone
+
+        may = CreditCardBill(
+            user_id=test_user.id, account_id=cc_account.id,
+            external_id="bill-may", due_date=date(2026, 5, 16),
+            total_amount=Decimal("100"), currency="BRL",
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        session.add(may)
+        await session.flush()
+
+        # Pending sync tx, override 2026-05-10 (within May's [Apr 17, May 16]
+        # window but NOT equal to May's due_date 2026-05-16, so the
+        # auto-relink leaves bill_id null).
+        tx = await _make_tx(
+            session, test_user.id, cc_account.id,
+            date(2026, 5, 11), Decimal("105"),
+            effective_date=date(2026, 5, 10),
+            source="sync",
+        )
+        tx.status = "pending"
+        tx.effective_bill_date = date(2026, 5, 10)
+        await session.commit()
+
+        may_txs, _ = await get_transactions(
+            session, test_user.id, account_id=cc_account.id,
+            bill_id=may.id,
+            from_date=date(2026, 4, 17), to_date=date(2026, 5, 16),
+            accounting_mode="cash",
+        )
+        assert any(t.id == tx.id for t in may_txs), (
+            "pending sync tx with manual override in window must be "
+            "visible in the target bill view"
+        )

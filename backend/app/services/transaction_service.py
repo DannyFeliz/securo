@@ -219,9 +219,18 @@ async def get_transactions(
                 # because pending txs there have effective_date pointing
                 # forward to a later bill (ingrid's case stays clean).
                 # Issue #92, abdalanervoso's empty-May.
+                #
+                # Manual override (effective_bill_date) bypasses the
+                # exclusion entirely: the user has hand-corrected the
+                # bucketing and that signal beats both cycle-math
+                # classification and sync-pending caution. Without this
+                # carve-out, a pending tx whose override doesn't snap to
+                # an existing bill's due_date (so bill_id stays null)
+                # gets filtered out of every closed-bill view (issue #162).
                 _not(_and(
                     Transaction.source == "sync",
                     Transaction.status == "pending",
+                    Transaction.effective_bill_date.is_(None),
                     Transaction.effective_date != active_due_subq,
                 )),
             ]
