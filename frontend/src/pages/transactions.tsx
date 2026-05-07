@@ -566,11 +566,14 @@ export default function TransactionsPage() {
     const alignClass = col.align === 'right' ? 'text-right' : 'text-left'
     const justify = col.align === 'right' ? 'justify-end' : 'justify-start'
     const cursorClass = col.sortable ? 'cursor-pointer select-none hover:text-foreground' : ''
+    // Match the amount/attachments body cells' pr-5 so right-aligned
+    // headers line up with their values (issue #161 polish).
+    const padX = col.align === 'right' ? 'pr-5' : ''
     return (
       <TableHead
         key={col.id}
         style={{ width: grid.widthOf(col.id), minWidth: grid.widthOf(col.id) }}
-        className={`relative text-xs font-medium text-muted-foreground py-3 ${alignClass}`}
+        className={`relative text-xs font-medium text-muted-foreground py-3 ${alignClass} ${padX}`}
         onClick={() => { if (col.sortable) grid.toggleSort(col.id) }}
       >
         <div className={`flex items-center gap-1 ${justify} ${cursorClass}`}>
@@ -755,7 +758,7 @@ export default function TransactionsPage() {
         )
       case 'amount':
         return (
-          <TableCell key={col.id} style={widthStyle} className={`${baseClass} pr-3 md:pr-5`}>
+          <TableCell key={col.id} style={widthStyle} className={`${baseClass} pr-5`}>
             {renderAmountCell(tx)}
           </TableCell>
         )
@@ -797,7 +800,7 @@ export default function TransactionsPage() {
       }
       case 'attachments':
         return (
-          <TableCell key={col.id} style={widthStyle} className={`${baseClass} text-sm text-muted-foreground tabular-nums`}>
+          <TableCell key={col.id} style={widthStyle} className={`${baseClass} pr-5 text-sm text-muted-foreground tabular-nums`}>
             {(tx.attachment_count ?? 0) > 0 ? (
               <span className="inline-flex items-center gap-1 justify-end w-full">
                 <Paperclip size={12} />{tx.attachment_count}
