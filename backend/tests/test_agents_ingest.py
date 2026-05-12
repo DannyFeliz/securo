@@ -7,6 +7,7 @@ JSON in conftest, so writing a Python list works on SQLite.
 """
 from __future__ import annotations
 
+import tempfile
 import uuid
 
 import pytest
@@ -14,6 +15,17 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.agents.services import knowledge_service
 from app.agents.tasks.ingest import _do_ingest
+
+
+@pytest.fixture(autouse=True)
+def _storage_in_tmpdir(monkeypatch):
+    """Redirect AGENTS_KNOWLEDGE_STORAGE_PATH to a per-test tmpdir. The
+    default `/app/data/agent_knowledge` is not writable in CI."""
+    tmp = tempfile.mkdtemp(prefix="kb-ingest-")
+    from app.agents.config import get_agent_settings
+
+    monkeypatch.setattr(get_agent_settings(), "knowledge_storage_path", tmp)
+    yield tmp
 
 
 def _session_maker_from(session):

@@ -168,10 +168,19 @@ async def test_mcp_unknown_method(test_user):
 
 
 @pytest.mark.asyncio
-async def test_mcp_tools_call_runs_real_tool(test_user):
+async def test_mcp_tools_call_runs_real_tool(test_user, monkeypatch):
     """End-to-end happy path: auth → tools/call → real tool → structured
     JSON response. Uses list_categories because it has no pgvector
-    dependency and is safe on SQLite."""
+    dependency and is safe on SQLite.
+
+    Routes the mcp_server's `async_session_maker` to the conftest test
+    DB; otherwise CI's mcp_server points at the real Postgres which has
+    no schema in the test environment and the tool raises."""
+    from tests.conftest import TestSessionLocal
+    import mcp_server.main as mcp_main
+
+    monkeypatch.setattr(mcp_main, "async_session_maker", TestSessionLocal)
+
     async with _client() as cli:
         r = await cli.post(
             "/mcp",
