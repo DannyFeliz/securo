@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import UserManager, current_active_user, current_superuser, get_user_manager
+from app.core.config import get_settings
 from app.core.database import get_async_session
 from app.models.user import User
 from app.schemas.admin import (
@@ -138,6 +139,10 @@ async def update_setting(
 async def registration_status(
     session: AsyncSession = Depends(get_async_session),
 ):
+    # Demo mode forces registration off (see check_registration_enabled
+    # below). Mirror that here so the frontend hides the signup link.
+    if get_settings().demo_mode:
+        return {"enabled": False}
     enabled = await admin_service.is_registration_enabled(session)
     return {"enabled": enabled}
 
@@ -155,6 +160,14 @@ async def check_registration_enabled(
     request: Request,
     session: AsyncSession = Depends(get_async_session),
 ):
+    # Demo mode forces registration off so visitors land on the seeded
+    # demo user (auto-login) instead of creating short-lived accounts
+    # that get wiped on the next hourly reset.
+    if get_settings().demo_mode:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration is currently disabled",
+        )
     enabled = await admin_service.is_registration_enabled(session)
     if not enabled:
         raise HTTPException(

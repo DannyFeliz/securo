@@ -155,6 +155,13 @@ def refresh_market_prices() -> dict:
     but respectful of Yahoo's unofficial rate limits — the service halts
     itself on ``MarketPriceRateLimitedError`` so we don't hammer the API.
     """
+    # In demo mode we skip the live quote call entirely: a multi-user
+    # demo would multiply outbound requests and trip Yahoo's bot
+    # heuristics. Seed data already includes static prices.
+    if get_settings().demo_mode:
+        logger.info("Market-price refresh skipped: DEMO_MODE is on")
+        return {"refreshed": 0, "skipped": 0, "rate_limited": 0, "demo": True}
+
     try:
         result = asyncio.run(_refresh_market_prices())
     except Exception:

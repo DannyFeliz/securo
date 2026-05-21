@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback } from 'react'
+import { Navigate } from 'react-router-dom'
 import { getAccountName } from '@/lib/account-utils'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useFeatureFlags } from '@/hooks/use-feature-flags'
 import { transactions as transactionsApi, accounts as accountsApi, importLogs as importLogsApi, categories as categoriesApi, categoryGroups as categoryGroupsApi } from '@/lib/api'
 import { invalidateFinancialQueries } from '@/lib/invalidate-queries'
 import { formatCurrency } from '@/lib/format'
@@ -46,6 +48,10 @@ function toReviewTransactions(txns: ImportPreviewTransaction[]): ImportReviewTra
 export default function ImportPage() {
   const { t, i18n } = useTranslation()
   const { user } = useAuth()
+  const { demoMode } = useFeatureFlags()
+  // Disabled in demo mode — uploads survive only until the hourly reset
+  // and the unbounded parser would let a visitor crash the worker.
+  if (demoMode) return <Navigate to="/" replace />
   const userCurrency = user?.preferences?.currency_display ?? 'USD'
   const locale = i18n.language === 'en' ? 'en-US' : i18n.language
   const queryClient = useQueryClient()

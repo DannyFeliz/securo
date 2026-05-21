@@ -40,6 +40,7 @@ import { ConnectorSelectDialog } from '@/components/connector-select-dialog'
 import { ConnectionSettingsDialog } from '@/components/connection-settings-dialog'
 import { usePrivacyMode } from '@/hooks/use-privacy-mode'
 import { useAuth } from '@/contexts/auth-context'
+import { useFeatureFlags } from '@/hooks/use-feature-flags'
 
 function formatCurrency(value: number, currency = 'USD', locale = 'en-US') {
   return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value)
@@ -70,6 +71,7 @@ export default function AccountsPage() {
   const locale = i18n.language === 'en' ? 'en-US' : i18n.language
   const { mask } = usePrivacyMode()
   const { user } = useAuth()
+  const { demoMode } = useFeatureFlags()
   const userCurrency = user?.preferences?.currency_display ?? 'USD'
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -190,10 +192,12 @@ export default function AccountsPage() {
         title={t('accounts.title')}
         action={
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-1.5" onClick={() => setConnectorSelectOpen(true)}>
-              <Plus size={16} />
-              {t('accounts.connectBank')}
-            </Button>
+            {!demoMode && (
+              <Button variant="outline" className="gap-1.5" onClick={() => setConnectorSelectOpen(true)}>
+                <Plus size={16} />
+                {t('accounts.connectBank')}
+              </Button>
+            )}
             <Button onClick={() => { setEditingAccount(null); setDialogOpen(true) }} className="gap-1.5">
               <Plus size={16} />
               {t('accounts.addManual')}
@@ -290,8 +294,8 @@ export default function AccountsPage() {
             )}
           </div>
 
-          {/* Bank Connections */}
-          {connectionsList && connectionsList.length > 0 ? (
+          {/* Bank Connections — hidden in demo mode (no provider configured). */}
+          {demoMode ? null : connectionsList && connectionsList.length > 0 ? (
             <div className="space-y-3">
               {connectionsList.map((conn) => {
                 const connAccounts = bankAccounts.filter((a) => a.connection_id === conn.id)
