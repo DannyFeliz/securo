@@ -20,6 +20,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -233,12 +240,6 @@ export default function WorkspaceSettingsPage() {
   const isManagerSelf = isManaged && current.managed_by_user_id === currentUser?.id
   const localeForFormat = i18n.language === 'pt-BR' ? 'pt-BR' : 'en-US'
 
-  const localeOptions: Array<{ value: string; label: string }> = [
-    { value: '', label: '—' },
-    { value: 'en', label: 'English' },
-    { value: 'pt-BR', label: 'Português (BR)' },
-  ]
-
   return (
     <div className="container max-w-5xl py-8 space-y-6">
       {/* Header card — identity + role + stats strip */}
@@ -295,85 +296,97 @@ export default function WorkspaceSettingsPage() {
             </Button>
           )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          <div className="md:col-span-2 space-y-1.5">
-            <Label className="text-[13px]">{t('workspace.icon', 'Ícone')}</Label>
-            {canManage ? (
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="h-10 w-10 rounded-lg border border-input flex items-center justify-center hover:bg-muted/40 transition-colors"
-                      title={t('workspace.icon', 'Ícone')}
-                    >
-                      <CategoryIcon icon={editIcon} color={editColor} size="sm" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-3" align="start">
-                    <IconPicker value={editIcon} color={editColor} onChange={setEditIcon} />
-                  </PopoverContent>
-                </Popover>
-                <Input
-                  type="color"
-                  value={editColor}
-                  onChange={(e) => setEditColor(e.target.value)}
-                  className="h-10 w-10 p-1 rounded-lg cursor-pointer"
-                  title={t('groups.color', 'Cor')}
-                />
-              </div>
-            ) : (
-              <CategoryIcon icon={editIcon} color={editColor} size="md" />
-            )}
-          </div>
-          <div className="md:col-span-4 space-y-1.5">
+        <div className="space-y-4">
+          {/* Identity row — icon button + color swatch tucked tightly
+              against the name input so they read as one unit. */}
+          <div className="space-y-1.5">
             <Label htmlFor="ws-name" className="text-[13px]">
               {t('workspace.name')}
             </Label>
-            <Input
-              id="ws-name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              disabled={!canManage}
-              maxLength={100}
-              className="h-10 rounded-lg"
-            />
+            <div className="flex items-stretch gap-2">
+              {canManage ? (
+                <>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="h-10 w-10 rounded-lg border border-input flex items-center justify-center hover:bg-muted/40 transition-colors shrink-0"
+                        title={t('workspace.icon', 'Ícone')}
+                      >
+                        <CategoryIcon icon={editIcon} color={editColor} size="sm" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-3" align="start">
+                      <IconPicker value={editIcon} color={editColor} onChange={setEditIcon} />
+                    </PopoverContent>
+                  </Popover>
+                  <input
+                    type="color"
+                    value={editColor}
+                    onChange={(e) => setEditColor(e.target.value)}
+                    className="h-10 w-10 p-1 rounded-lg cursor-pointer border border-input bg-background shrink-0"
+                    title={t('groups.color', 'Cor')}
+                  />
+                </>
+              ) : (
+                <div className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0">
+                  <CategoryIcon icon={editIcon} color={editColor} size="sm" />
+                </div>
+              )}
+              <Input
+                id="ws-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                disabled={!canManage}
+                maxLength={100}
+                className="h-10 rounded-lg flex-1"
+              />
+            </div>
           </div>
-          <div className="md:col-span-3 space-y-1.5">
-            <Label htmlFor="ws-currency" className="text-[13px]">
-              {t('workspace.defaultCurrency')}
-            </Label>
-            <select
-              id="ws-currency"
-              value={editCurrency}
-              onChange={(e) => setEditCurrency(e.target.value)}
-              disabled={!canManage}
-              className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm disabled:opacity-60"
-            >
-              {(supportedCurrencies ?? [{ code: editCurrency, symbol: editCurrency, name: editCurrency, flag: '' }]).map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.flag} {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="md:col-span-3 space-y-1.5">
-            <Label htmlFor="ws-locale" className="text-[13px]">
-              {t('workspace.locale')}
-            </Label>
-            <select
-              id="ws-locale"
-              value={editLocale}
-              onChange={(e) => setEditLocale(e.target.value)}
-              disabled={!canManage}
-              className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm disabled:opacity-60"
-            >
-              {localeOptions.map((opt) => (
-                <option key={opt.value || 'empty'} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+
+          {/* Region row — currency + locale */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="ws-currency" className="text-[13px]">
+                {t('workspace.defaultCurrency')}
+              </Label>
+              <Select
+                value={editCurrency}
+                onValueChange={setEditCurrency}
+                disabled={!canManage}
+              >
+                <SelectTrigger id="ws-currency" className="h-10 rounded-lg w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(supportedCurrencies ?? [{ code: editCurrency, symbol: editCurrency, name: editCurrency, flag: '' }]).map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      <span className="mr-2">{c.flag}</span>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ws-locale" className="text-[13px]">
+                {t('workspace.locale')}
+              </Label>
+              <Select
+                value={editLocale || '__none__'}
+                onValueChange={(v) => setEditLocale(v === '__none__' ? '' : v)}
+                disabled={!canManage}
+              >
+                <SelectTrigger id="ws-locale" className="h-10 rounded-lg w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="pt-BR">Português (BR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </section>
