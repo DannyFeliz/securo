@@ -37,18 +37,22 @@ async def chat(
     ctx: WorkspaceContext = Depends(current_workspace),
     session: AsyncSession = Depends(get_async_session),
 ):
-    agent = await agent_service.get_agent(session, agent_id, ctx.user_id)
+    agent = await agent_service.get_agent(session, agent_id, ctx.workspace.id)
     if agent is None:
         raise HTTPException(status_code=404, detail="agent not found")
 
     conv = None
     if body.conversation_id:
-        conv = await conversation_service.get_conversation(session, body.conversation_id, ctx.user_id)
+        conv = await conversation_service.get_conversation(session, body.conversation_id, ctx.workspace.id)
         if conv is None or conv.agent_id != agent_id:
             raise HTTPException(status_code=404, detail="conversation not found")
     if conv is None:
         conv = await conversation_service.create_conversation(
-            session, user_id=ctx.user_id, agent_id=agent_id, channel=body.channel,
+            session,
+            workspace_id=ctx.workspace.id,
+            user_id=ctx.user_id,
+            agent_id=agent_id,
+            channel=body.channel,
         )
 
     executor = AgentExecutor()
