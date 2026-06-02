@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/auth-context'
 import { admin as adminApi } from '@/lib/api'
+import { resolveSupportedLang } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,6 +30,7 @@ const currencies = [
   { code: 'CRC', flag: '\u{1F1E8}\u{1F1F7}', symbol: '₡' },
   { code: 'IDR', flag: '\u{1F1EE}\u{1F1E9}', symbol: 'Rp' },
   { code: 'COP', flag: '\u{1F1E8}\u{1F1F4}', symbol: '$' },
+  { code: 'CLP', flag: '\u{1F1E8}\u{1F1F1}', symbol: '$' },
   { code: 'DOP', flag: '\u{1F1E9}\u{1F1F4}', symbol: 'RD$' },
 ] as const
 
@@ -65,7 +67,7 @@ export default function RegisterPage() {
 
     setIsLoading(true)
     try {
-      const lang = i18n.language?.startsWith('pt') ? 'pt-BR' : 'en'
+      const lang = resolveSupportedLang(i18n.resolvedLanguage ?? i18n.language)
       await register(email, password, {
         currency_display: currency,
         language: lang,
