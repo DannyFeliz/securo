@@ -259,6 +259,7 @@ export default function AccountsPage() {
                   const cfg = getAccountTypeConfig(acc.type)
                   const bal = Number(acc.current_balance)
                   const isCC = acc.type === 'credit_card'
+                  const displayBalance = isCC ? Math.abs(bal) : bal
                   const dueIn = isCC ? daysUntil(acc.next_due_date) : null
                   const dueText =
                     dueIn == null ? null
@@ -283,7 +284,7 @@ export default function AccountsPage() {
                       </Link>
                       <div className="shrink-0 text-right">
                         <p className={`text-xs sm:text-sm font-semibold tabular-nums ${(acc.type === 'credit_card' ? bal > 0 : bal < 0) ? 'text-rose-500' : 'text-foreground'}`}>
-                          {mask(formatCurrency(bal, acc.currency, locale))}
+                          {mask(formatCurrency(displayBalance, acc.currency, locale))}
                         </p>
                         {isCC && acc.available_credit != null ? (
                           <p className="text-[10px] text-muted-foreground tabular-nums">
@@ -409,6 +410,7 @@ export default function AccountsPage() {
                           const cfg = getAccountTypeConfig(acc.type)
                           const bal = Number(acc.current_balance)
                           const isCC = acc.type === 'credit_card'
+                          const displayBalance = isCC ? Math.abs(bal) : bal
                           const dueIn = isCC ? daysUntil(acc.next_due_date) : null
                           const dueText =
                             dueIn == null ? null
@@ -433,7 +435,7 @@ export default function AccountsPage() {
                               </Link>
                               <div className="shrink-0 text-right">
                                 <p className={`text-xs sm:text-sm font-semibold tabular-nums ${(acc.type === 'credit_card' ? bal > 0 : bal < 0) ? 'text-rose-500' : 'text-foreground'}`}>
-                                  {mask(formatCurrency(bal, acc.currency, locale))}
+                                  {mask(formatCurrency(displayBalance, acc.currency, locale))}
                                 </p>
                                 {isCC && acc.available_credit != null ? (
                                   <p className="text-[10px] text-muted-foreground tabular-nums">

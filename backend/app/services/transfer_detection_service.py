@@ -71,6 +71,42 @@ NODE = reconciliation_policy.MATCH_TRANSFER["node"]
 #: The opposite of what a leg did, which is what the other leg must do.
 _OPPOSITE = {"debit": "credit", "credit": "debit"}
 
+PRIMARY_AMOUNT_ABSOLUTE_TOLERANCE = Decimal("1.00")
+PRIMARY_AMOUNT_RELATIVE_TOLERANCE = Decimal("0.05")
+
+
+def _abs_decimal(value) -> Decimal:
+    return Decimal(str(value)).copy_abs()
+
+
+def _primary_amounts_close(a: Decimal, b: Decimal) -> tuple[bool, Decimal]:
+    diff = (a - b).copy_abs()
+    if diff <= PRIMARY_AMOUNT_ABSOLUTE_TOLERANCE:
+        return True, diff
+
+    larger = max(a.copy_abs(), b.copy_abs())
+    if larger == 0:
+        return diff == 0, diff
+
+    return diff / larger <= PRIMARY_AMOUNT_RELATIVE_TOLERANCE, diff
+
+
+def _transfer_amount_match(debit: Transaction, credit: Transaction) -> tuple[bool, Decimal]:
+    debit_amount = _abs_decimal(debit.amount)
+    credit_amount = _abs_decimal(credit.amount)
+
+    if debit.currency == credit.currency:
+        diff = (debit_amount - credit_amount).copy_abs()
+        return diff == 0, diff
+
+    if debit.amount_primary is None or credit.amount_primary is None:
+        return False, Decimal("Infinity")
+
+    return _primary_amounts_close(
+        _abs_decimal(debit.amount_primary),
+        _abs_decimal(credit.amount_primary),
+    )
+
 
 def _enabled(policy: dict[str, Any]) -> list[dict[str, Any]]:
     return [s for s in policy.get("strategies", []) if s.get("enabled", True)]
@@ -364,6 +400,71 @@ async def detect_transfer_pairs(
         await suggestions.record(
             session, workspace_id, tx_id, decision, movement, NODE
         )
+
+    # Pass three: cross-currency matching for accounts with primary amounts (e.g. USD <-> DOP)
+    remaining_debits = [
+        tx for tx in pool
+        if tx.type == "debit"
+        and tx.id not in paired
+        and tx.transfer_pair_id is None
+        and tx.amount_primary is not None
+        and (new_ids is None or tx.id in new_ids)
+    ]
+    all_candidate_debits = [
+        tx for tx in pool
+        if tx.type == "debit"
+        and tx.id not in paired
+        and tx.transfer_pair_id is None
+        and tx.amount_primary is not None
+    ] if new_ids is not None else remaining_debits
+
+    unpaired_credits = [
+        tx for tx in pool
+        if tx.type == "credit"
+        and tx.id not in paired
+        and tx.transfer_pair_id is None
+        and tx.amount_primary is not None
+    ]
+
+    for debit in all_candidate_debits:
+        if debit.id in paired:
+            continue
+        best_match = None
+        best_delta = None
+        best_amount_diff = None
+
+        for credit in unpaired_credits:
+            if credit.id in paired:
+                continue
+            if credit.account_id == debit.account_id:
+                continue
+            if credit.currency == debit.currency:
+                continue
+            if new_ids is not None and not (debit.id in new_ids or credit.id in new_ids):
+                continue
+            delta = abs((credit.date - debit.date).days)
+            if delta > 3:
+                continue
+            matches, amount_diff = _transfer_amount_match(debit, credit)
+            if not matches:
+                continue
+            if (
+                best_delta is None
+                or delta < best_delta
+                or (delta == best_delta and (
+                    best_amount_diff is None or amount_diff < best_amount_diff
+                ))
+            ):
+                best_match = credit
+                best_delta = delta
+                best_amount_diff = amount_diff
+
+        if best_match:
+            pair_id = uuid.uuid4()
+            debit.transfer_pair_id = pair_id
+            best_match.transfer_pair_id = pair_id
+            paired.update({debit.id, best_match.id})
+            pairs_created += 1
 
     return pairs_created
 

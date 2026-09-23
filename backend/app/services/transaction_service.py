@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Optional, cast
 
 from sqlalchemy import CursorResult, delete, select, func, or_, not_, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -714,6 +715,18 @@ async def create_transaction(
     # Resolve currency: explicit value > account currency
     currency = data.currency or account.currency
 
+    if data.external_id:
+        existing_result = await session.execute(
+            select(Transaction).where(
+                Transaction.account_id == data.account_id,
+                Transaction.external_id == data.external_id,
+                Transaction.date == data.date,
+            )
+        )
+        existing = existing_result.scalar_one_or_none()
+        if existing:
+            return existing
+
     transaction = Transaction(
         user_id=user_id,
         workspace_id=workspace_id,
@@ -742,7 +755,23 @@ async def create_transaction(
         await _resync_bill_link_from_override(session, transaction, account)
     apply_effective_date(transaction, account)
     session.add(transaction)
-    await session.flush()  # get ID without committing
+    try:
+        await session.flush()  # get ID without committing
+    except IntegrityError:
+        if not data.external_id:
+            raise
+        await session.rollback()
+        existing_result = await session.execute(
+            select(Transaction).where(
+                Transaction.account_id == data.account_id,
+                Transaction.external_id == data.external_id,
+                Transaction.date == data.date,
+            )
+        )
+        existing = existing_result.scalar_one_or_none()
+        if existing:
+            return existing
+        raise
 
     # Apply rules only if no explicit category provided
     if not data.category_id:

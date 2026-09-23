@@ -23,11 +23,11 @@ from app.services.transfer_detection_service import (
 
 
 async def _make_account(
-    session: AsyncSession, user_id: uuid.UUID, name: str,
+    session: AsyncSession, user_id: uuid.UUID, name: str, currency: str = "BRL",
 ) -> Account:
     account = Account(
         id=uuid.uuid4(), user_id=user_id, name=name,
-        type="checking", balance=Decimal("0.00"), currency="BRL",
+        type="checking", balance=Decimal("0.00"), currency=currency,
     )
     session.add(account)
     await session.commit()
@@ -39,13 +39,15 @@ async def _add_txn(
     session: AsyncSession, user_id: uuid.UUID, account_id: uuid.UUID,
     amount: float, txn_type: str, txn_date: date,
     source: str = "manual",
+    currency: str = "BRL",
+    amount_primary: Decimal | None = None,
 ) -> Transaction:
     from datetime import datetime, timezone
     txn = Transaction(
         id=uuid.uuid4(), user_id=user_id, account_id=account_id,
         description=f"Transfer {txn_type} {amount}",
         amount=Decimal(str(amount)), date=txn_date, type=txn_type,
-        source=source, currency="BRL",
+        source=source, currency=currency, amount_primary=amount_primary,
         created_at=datetime.now(timezone.utc),
     )
     session.add(txn)
@@ -368,3 +370,119 @@ async def test_both_sides_imported_together(session: AsyncSession, test_user, te
     await session.refresh(debit)
     await session.refresh(credit)
     assert debit.transfer_pair_id == credit.transfer_pair_id
+
+
+@pytest.mark.asyncio
+async def test_detect_cross_currency_pair_by_primary_amount(
+    session: AsyncSession, test_user, test_workspace
+):
+    usd_account = await _make_account(session, test_user.id, "USD Savings", currency="USD")
+    dop_account = await _make_account(session, test_user.id, "DOP Savings", currency="DOP")
+    today = date.today()
+
+    debit = await _add_txn(
+        session,
+        test_user.id,
+        usd_account.id,
+        500,
+        "debit",
+        today,
+        currency="USD",
+        amount_primary=Decimal("28250.00"),
+    )
+    credit = await _add_txn(
+        session,
+        test_user.id,
+        dop_account.id,
+        28250,
+        "credit",
+        today,
+        currency="DOP",
+        amount_primary=Decimal("28250.00"),
+    )
+
+    pairs = await detect_transfer_pairs(session, test_workspace.id)
+    await session.commit()
+    assert pairs == 1
+
+    await session.refresh(debit)
+    await session.refresh(credit)
+    assert debit.transfer_pair_id is not None
+    assert debit.transfer_pair_id == credit.transfer_pair_id
+
+
+@pytest.mark.asyncio
+async def test_detect_cross_currency_pair_allows_bank_fx_spread(
+    session: AsyncSession, test_user, test_workspace
+):
+    usd_account = await _make_account(session, test_user.id, "Spread USD", currency="USD")
+    dop_account = await _make_account(session, test_user.id, "Spread DOP", currency="DOP")
+    today = date.today()
+
+    debit = await _add_txn(
+        session,
+        test_user.id,
+        usd_account.id,
+        500,
+        "debit",
+        today,
+        currency="USD",
+        amount_primary=Decimal("29400.00"),
+    )
+    credit = await _add_txn(
+        session,
+        test_user.id,
+        dop_account.id,
+        28250,
+        "credit",
+        today,
+        currency="DOP",
+        amount_primary=Decimal("28250.00"),
+    )
+
+    pairs = await detect_transfer_pairs(session, test_workspace.id)
+    await session.commit()
+    assert pairs == 1
+
+    await session.refresh(debit)
+    await session.refresh(credit)
+    assert debit.transfer_pair_id == credit.transfer_pair_id
+
+
+@pytest.mark.asyncio
+async def test_detect_cross_currency_rejects_large_primary_amount_gap(
+    session: AsyncSession, test_user, test_workspace
+):
+    usd_account = await _make_account(session, test_user.id, "Gap USD", currency="USD")
+    dop_account = await _make_account(session, test_user.id, "Gap DOP", currency="DOP")
+    today = date.today()
+
+    debit = await _add_txn(
+        session,
+        test_user.id,
+        usd_account.id,
+        500,
+        "debit",
+        today,
+        currency="USD",
+        amount_primary=Decimal("32000.00"),
+    )
+    credit = await _add_txn(
+        session,
+        test_user.id,
+        dop_account.id,
+        28250,
+        "credit",
+        today,
+        currency="DOP",
+        amount_primary=Decimal("28250.00"),
+    )
+
+    pairs = await detect_transfer_pairs(session, test_workspace.id)
+    await session.commit()
+    assert pairs == 0
+
+    await session.refresh(debit)
+    await session.refresh(credit)
+    assert debit.transfer_pair_id is None
+    assert credit.transfer_pair_id is None

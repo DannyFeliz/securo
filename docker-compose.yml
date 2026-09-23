@@ -10,8 +10,8 @@ x-podman:
 x-backend-env: &backend-env
   DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/securo
   SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production}
-  DEBUG: ${DEBUG:-true}
-  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:${FRONTEND_PORT:-3000}}
+  DEBUG: ${DEBUG:-false}
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
   WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-Securo}
   WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-}
   WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN:-}
@@ -59,7 +59,7 @@ x-backend-env: &backend-env
   # Used by Claude Desktop, n8n, custom clients plugging into Securo.
   AGENTS_MCP_EXTERNAL_TTL_DAYS: ${AGENTS_MCP_EXTERNAL_TTL_DAYS:-90}
   # LLM provider config — only the provider you actually use needs setting.
-  AGENTS_DEFAULT_PROVIDER: ${AGENTS_DEFAULT_PROVIDER:-ollama}
+  AGENTS_DEFAULT_PROVIDER: ${AGENTS_DEFAULT_PROVIDER:-openai_compatible}
   AGENTS_DEFAULT_MODEL: ${AGENTS_DEFAULT_MODEL:-}
   AGENTS_OLLAMA_BASE_URL: ${AGENTS_OLLAMA_BASE_URL:-http://ollama:11434}
   AGENTS_OPENAI_API_KEY: ${AGENTS_OPENAI_API_KEY:-}
@@ -73,7 +73,9 @@ x-backend-env: &backend-env
   AGENTS_EMBEDDING_MODEL: ${AGENTS_EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
 
 x-backend-base: &backend-base
-  build: ./backend
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
   environment: *backend-env
   # Lets a connection point at a model server running on the host (LM Studio,
   # Ollama, llama.cpp) as http://host.docker.internal:<port>. Docker Desktop
@@ -84,8 +86,6 @@ x-backend-base: &backend-base
     db: { condition: service_healthy }
     redis: { condition: service_healthy }
   volumes:
-    - ./backend:/app
-    - ./secrets:/app/secrets:ro
     - attachments:/app/data/attachments
     - agent_knowledge:/app/data/agent_knowledge
     - agent_embedding_models:/app/data/embedding_models
@@ -121,29 +121,21 @@ services:
 
   backend:
     <<: *backend-base
-    command:
-      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port
-      8000 --reload"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "${BACKEND_PORT:-8000}:8000"
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
-      - "${FRONTEND_PORT:-3000}:5173"
+      - "${FRONTEND_PORT:-3000}:8080"
     environment:
       BACKEND_URL: http://backend:8000
-      # Also drives Vite's allowedHosts, so a proxied domain is not blocked.
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:${FRONTEND_PORT:-3000}}
-      APP_VERSION_ROOT: /workspace
+      FRONTEND_URL: http://localhost:3000
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - ./:/workspace:ro
-      - /app/node_modules
     restart: unless-stopped
 
   celery-worker:
