@@ -2072,6 +2072,7 @@
       "ro_cui": "CUI",
       "ch_uid": "UID",
       "inn": "INN",
+      "kz_biniin": "BIN/IIN",
       "edrpou": "EDRPOU",
       "cuit": "CUIT",
       "rfc": "RFC",
